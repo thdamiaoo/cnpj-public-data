@@ -27,63 +27,134 @@ class Database:
         }
         con = psycopg2.connect(**pg_connection)
         con.autocommit = True
-        self.cursor = con.cursor() 
+        self.cursor = con.cursor()
+        self.cria_tabela_empresas()
+        self.dados_brutos()
 
     def cria_tabela_empresas(self):
         try:
             sql = f"""
                         CREATE TABLE IF NOT EXISTS public.empresa 
                             (
-                                code varchar(100) NULL,
-                                status varchar(100) NULL,
-                                message varchar(100) NULL,
-                                cnpj varchar(100)PRIMARY KEY,
-                                tipo varchar(100) NULL,
-                                porte varchar(100) NULL,
-                                situacao varchar(100) NULL,
-                                abertura varchar(100) NULL,
-                                nome varchar(100) NULL,
-                                fantasia varchar(100) NULL,
-                                atividade_principal varchar(100) NULL,
-                                atividade_principal_code varchar(100) NULL,
-                                atividade_principal_text varchar(100) NULL,
-                                atividades_secundarias varchar(100) NULL,
-                                atividades_secundarias_code varchar(100) NULL,
-                                atividades_secundarias_text varchar(100) NULL,
-                                natureza_juridica varchar(100) null,
-                                logradouro varchar(100) NULL,
-                                numero varchar(100) NULL,
-                                complemento varchar(100) NULL,
-                                cep varchar(100) NULL,
-                                bairro varchar(100) null,
-                                municipio varchar(100) NULL,
-                                uf varchar(100) NULL,
-                                email varchar(100) null,
-                                telefone varchar(100) NULL,
-                                efr varchar(100) NULL,
-                                data_situacao varchar(100) NULL,
-                                motivo_situacao varchar(100) NULL,
-                                situacao_especial varchar(100) NULL,
-                                data_situacao_especial varchar(100) NULL,
-                                capital_social varchar(100) NULL,
-                                qsa varchar(100) NULL,
-                                qsa_nome varchar(100) NULL,
-                                qsa_qual varchar(100) null,
-                                qsa_pais_origem varchar(100) NULL,
-                                qsa_nome_rep_legal varchar(100) NULL,
-                                qsa_qual_rep_legal varchar(100) NULL,
-                                extra varchar(100) NULL,
-                                ibge varchar(100) NULL,
-                                ibge_codigo_municipio varchar(100) null,
-                                ibge_codigo_uf varchar(100) null,
-                                cnpjs_do_grupo varchar(100) NULL,
-                                cnpj_outro varchar(100) null,
-                                uf_outro varchar(100) null,
-                                tipo_outro varchar(100) NULL,
+                                id serial4 NOT NULL,
+                                codigo text NULL,
+                                descricao text NULL,
+                                cnpj text NULL,
+                                data_situacao text NULL,
+                                motivo_situacao text NULL,
+                                tipo text NULL,
+                                nome text NULL,
+                                fantasia text NULL,
+                                porte text NULL,
+                                natureza_juridica text NULL,
+                                abertura text NULL,
+                                email text NULL,
+                                qsa text NULL,
+                                situacao text NULL,
+                                logradouro text NULL,
+                                numero text NULL,
+                                municipio text NULL,
+                                bairro text NULL,
+                                uf text NULL,
+                                telefone text NULL,
+                                cep text NULL,
+                                complemento text NULL,
+                                efr text NULL,
+                                situacao_especial text NULL,
+                                data_situacao_especial text NULL,
+                                atividade_principal text NULL,
+                                capital_social text NULL,
+                                extra text NULL,
+                                billing text NULL,
+                                ultima_atualizacao text NULL,
+                                status text NULL,
                                 created_at timestamptz NULL DEFAULT CURRENT_TIMESTAMP
                             );
                     """
             self.cursor.execute(sql)
-            logger.info('Tabela empresa criada')            
+            logger.info('tabela empresa - OK')            
+        except Exception as e:
+            logger.info(str(e))
+    
+    def insere_dados_empresa(self, data, cnpj):
+        try:
+            sql = f"""
+                BEGIN;
+                LOCK TABLE public.empresa IN SHARE ROW EXCLUSIVE MODE;
+                INSERT INTO public.empresa
+                    (
+                        codigo,
+                        descricao,
+                        cnpj,
+                        data_situacao,
+                        motivo_situacao,
+                        tipo,
+                        nome,
+                        fantasia,
+                        porte,
+                        natureza_juridica,
+                        abertura,
+                        email,
+                        qsa,
+                        situacao,
+                        logradouro,
+                        numero,
+                        municipio,
+                        bairro,
+                        uf,
+                        telefone,
+                        cep,
+                        complemento,
+                        efr,
+                        situacao_especial,
+                        data_situacao_especial,
+                        atividade_principal,
+                        capital_social,
+                        extra,
+                        billing,
+                        ultima_atualizacao,
+                        status
+                    )
+                VALUES({data});
+            """
+            print('aqui')
+            print(data)
+            self.cursor.execute(sql)
+            logger.info(f'dados cnpj {cnpj} inseridos') 
+        except Exception as e:
+            logger.info(str(e))
+    
+    def dados_brutos(self):
+        try:
+            sql = f"""
+                CREATE TABLE IF NOT EXISTS public.cadastro_bruto 
+                    (   
+                        id serial4 NOT NULL,
+                        cnpj varchar(100) NULL,
+                        conteudo text,
+                        created_at timestamptz NULL DEFAULT CURRENT_TIMESTAMP,
+                        CONSTRAINT nfe_pkey PRIMARY KEY (id)
+                    );
+            """
+            self.cursor.execute(sql)
+            logger.info('tabela cadastro_bruto - OK') 
+        except Exception as e:
+            logger.info(str(e))
+    
+    def insere_dados_brutos(self, cnpj, data):
+        try:
+            sql = f"""
+            BEGIN;
+            LOCK TABLE public.cadastro_bruto IN SHARE ROW EXCLUSIVE MODE;
+            INSERT INTO public.cadastro_bruto
+                (
+                    cnpj, 
+                    conteudo
+                )
+            SELECT cnpj, '{data[1].replace("'",'').replace('%', '')}'
+            
+            COMMIT;
+            """
+            self.cursor.execute(sql, data)
         except Exception as e:
             logger.info(str(e))

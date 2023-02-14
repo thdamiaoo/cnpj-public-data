@@ -5,6 +5,7 @@ import sys
 import requests
 import json
 from time import sleep
+import pandas as pd
 
 path_src = str(pathlib.Path(__file__).parent.resolve()) + '/..'
 sys.path.append(path_src)
@@ -26,21 +27,20 @@ class Validation:
 
     def valida_cnpj(self):
         try:
-            generate_cnpj = cnpj.generate_cnpj()
-            url = self.url + generate_cnpj
+            self.generate_cnpj = cnpj.generate_cnpj()
+            url = self.url + '49369670000179' # self.generate_cnpj
             querystring = {"token":"XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX","cnpj":"06990590000123","plugin":"RF"}        
             response = self.session.get(url, params=querystring)
             self.resp = json.loads(response.text)
             status = self.resp['status']
 
             if status == "OK":
-                logger.info(f'>>>>>>>>>>> CNPJ: {generate_cnpj} status: {status} - comitado <<<<<<<<<')
-                print(self.resp)
+                logger.info(f'>>>>>>>>>>> CNPJ: {self.generate_cnpj} status: {status} - comitado <<<<<<<<<')
                 return self.resp
             else:
-                logger.info(f'>>>>>>>>>>> CNPJ: {generate_cnpj} status: {status} - descartado <<<<<<<<<')
-                sleep(10)
-                self.valida_cnpj()
+                logger.info(f'>>>>>>>>>>> CNPJ: {self.generate_cnpj} status: {status} - descartado <<<<<<<<<')
+                # sleep(10.0)
+                # self.valida_cnpj()
                     # retry = True
                     # attempts = 1
 
@@ -62,12 +62,53 @@ class Validation:
                     #     else:
                     #         logger.info(f'>>>>>>>>>>> CNPJ: {new_generate_cnpj} status: {status} - comitado apos retry <<<<<<<<<')
                     #         retry = False            
+            sleep(10.0)
             self.valida_cnpj()
         except Exception as e:
             logger.info(str(e))
-    
-    def insert_database(self):
-        dados_empresa = self.valida_cnpj()
-        print(dados_empresa)
-    
+        
+    def trata_resposta(self):
+        resp = self.valida_cnpj()
+        cnpj = '49369670000179'
+        df = pd.json_normalize( resp, 
+                                record_path=['atividades_secundarias'], 
+                                meta=[
+                                        'cnpj',
+                                        'data_situacao',
+                                        'motivo_situacao',
+                                        'tipo',
+                                        'nome',
+                                        'fantasia',
+                                        'porte',
+                                        'natureza_juridica',
+                                        'abertura',
+                                        'email',
+                                        'qsa',
+                                        'situacao',
+                                        'logradouro',
+                                        'numero',
+                                        'municipio',
+                                        'bairro',
+                                        'uf',
+                                        'telefone',
+                                        'cep',
+                                        'complemento',
+                                        'efr',
+                                        'situacao_especial',
+                                        'data_situacao_especial', 
+                                        'atividade_principal',
+                                        'capital_social',
+                                        'extra',
+                                        'billing',
+                                        'ultima_atualizacao',
+                                        'status'
+                                ]
+                            )
+        df.rename(columns={'text':'descricao', 'code':'codigo'}, inplace=True)
+        # print(df)
+        # exit()
+        logger.info('dados preparados da serem inseridos')
+        self.db.insere_dados_empresa(df, cnpj)
+
+
 
