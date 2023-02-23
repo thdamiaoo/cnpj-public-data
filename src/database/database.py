@@ -25,6 +25,9 @@ class Database:
             'port': p.port,
             'host': p.scheme
         }
+
+        # print(pg_connection)
+        # exit()
         con = psycopg2.connect(**pg_connection)
         con.autocommit = True
         self.cursor = con.cursor()
@@ -38,7 +41,7 @@ class Database:
                             (
                                 id serial4 NOT NULL,
                                 codigo text NULL,
-                                descricao text NULL,
+                                descricao varchar(500) NULL,
                                 cnpj text NULL,
                                 data_situacao text NULL,
                                 motivo_situacao text NULL,
@@ -119,7 +122,11 @@ class Database:
             """
             print('aqui')
             print(data)
-            self.cursor.execute(sql)
+            try:
+                self.cursor.execute(sql)
+                print('feito')
+            except Exception as e:
+                print(str(e))
             logger.info(f'dados cnpj {cnpj} inseridos') 
         except Exception as e:
             logger.info(str(e))

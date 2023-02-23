@@ -28,7 +28,7 @@ class Validation:
     def valida_cnpj(self):
         try:
             self.generate_cnpj = cnpj.generate_cnpj()
-            url = self.url + '49369670000179' # self.generate_cnpj
+            url = self.url +  self.generate_cnpj
             querystring = {"token":"XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX","cnpj":"06990590000123","plugin":"RF"}        
             response = self.session.get(url, params=querystring)
             self.resp = json.loads(response.text)
@@ -68,47 +68,43 @@ class Validation:
             logger.info(str(e))
         
     def trata_resposta(self):
-        resp = self.valida_cnpj()
-        cnpj = '49369670000179'
-        df = pd.json_normalize( resp, 
-                                record_path=['atividades_secundarias'], 
-                                meta=[
-                                        'cnpj',
-                                        'data_situacao',
-                                        'motivo_situacao',
-                                        'tipo',
-                                        'nome',
-                                        'fantasia',
-                                        'porte',
-                                        'natureza_juridica',
-                                        'abertura',
-                                        'email',
-                                        'qsa',
-                                        'situacao',
-                                        'logradouro',
-                                        'numero',
-                                        'municipio',
-                                        'bairro',
-                                        'uf',
-                                        'telefone',
-                                        'cep',
-                                        'complemento',
-                                        'efr',
-                                        'situacao_especial',
-                                        'data_situacao_especial', 
-                                        'atividade_principal',
-                                        'capital_social',
-                                        'extra',
-                                        'billing',
-                                        'ultima_atualizacao',
-                                        'status'
-                                ]
-                            )
-        df.rename(columns={'text':'descricao', 'code':'codigo'}, inplace=True)
-        # print(df)
-        # exit()
-        logger.info('dados preparados da serem inseridos')
-        self.db.insere_dados_empresa(df, cnpj)
+        try:
+            resp = self.valida_cnpj()
+            df_atividade_principal = pd.json_normalize( resp, 
+                                    record_path=['atividade_principal'], 
+                                    meta=['cnpj'])                                
+            df_atividade_principal.rename(columns = {'code':'cod_atividade_principal', 'text':'desc_atividade_principal'}, inplace = True)
+            df_atividades_secundarias = pd.json_normalize( resp, 
+                                    record_path=['atividades_secundarias'], 
+                                    meta=['cnpj'])
+            df_atividades_secundarias.rename(columns = {'code':'cod_atividade_secundaria', 'text':'desc_atividade_secundaria'}, inplace = True)
+            df_atividades = pd.merge(df_atividade_principal, df_atividades_secundarias, on= 'cnpj', how='inner')
+            df_qsa = pd.json_normalize( resp, 
+                                    record_path=['qsa'], 
+                                    meta=['cnpj', 'data_situacao', 'motivo_situacao', 'tipo', 'fantasia', 'porte', 'natureza_juridica', 'abertura', 'email',
+                                        'situacao', 'logradouro', 'numero', 'municipio', 'bairro', 'uf', 'telefone', 'cep', 'complemento', 'efr', 'situacao_especial',
+                                        'data_situacao_especial', 'capital_social', 'ultima_atualizacao', 'status'])
+            df_qsa.rename(columns = {'nome':'nome_socio', 'qual':'qualificacao_socio'}, inplace = True)                                
+            df_merge = pd.merge(df_atividades, df_qsa, on='cnpj', how='inner')
+            print(df_merge)
+            return df_merge
+        except Exception as e:
+            logger.info(str(e))
+    
+    # def insere_dadado
+        
+
+
+
+
+                                        
+
+                            
+            
+        
+        
+        
+
 
 
 
