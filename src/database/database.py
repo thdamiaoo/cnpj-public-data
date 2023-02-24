@@ -31,8 +31,8 @@ class Database:
         con = psycopg2.connect(**pg_connection)
         con.autocommit = True
         self.cursor = con.cursor()
-        self.cria_tabela_empresas()
-        self.dados_brutos()
+        # self.cria_tabela_empresas()
+        # self.dados_brutos()
 
     def cria_tabela_empresas(self):
         try:
@@ -163,5 +163,54 @@ class Database:
             COMMIT;
             """
             self.cursor.execute(sql, data)
+        except Exception as e:
+            logger.info(str(e))
+    
+    def cria_fato(self):
+        try:
+            sql = f"""
+            CREATE TABLE IF NOT EXISTS PUBLIC.tmp_socio_pj AS
+            (
+                SELECT  a.st_cnpj_base          AS cnpj_base,
+                        a.st_nome               AS nome,
+                        a.st_cpf_cnpj           AS cpf_cnpj,
+                        b.st_qualificacao       AS qualificacao_socio,
+                        a.dt_entrada            AS data_entrada,
+                        d.st_pais               AS pais,
+                        a.st_nome_representante AS nome_representante,
+                        c.st_qualificacao       AS qualificacao_representante
+                FROM       PUBLIC.tb_socio a
+                INNER JOIN PUBLIC.tb_qualificacao_socio b
+                    ON         b.cd_qualificacao = a.cd_qualificacao
+                INNER JOIN PUBLIC.tb_qualificacao_socio c
+                    ON         c.cd_qualificacao = a.cd_qualificacao
+                INNER JOIN PUBLIC.tb_pais d
+                    ON         d.cd_pais = a.cd_pais
+                WHERE      a.cd_tipo = '1'
+            );
+
+            CREATE TABLE IF NOT EXISTS PUBLIC.tmp_socio_estrangeiro AS
+            (
+                SELECT  a.st_cnpj_base          AS cnpj_base,
+                        a.st_nome               AS nome,
+                        a.st_cpf_cnpj           AS cpf_cnpj,
+                        b.st_qualificacao       AS qualificacao_socio,
+                        a.dt_entrada            AS data_entrada,
+                        d.st_pais               AS pais,
+                        a.st_nome_representante AS nome_representante,
+                        c.st_qualificacao       AS qualificacao_representante
+                FROM       PUBLIC.tb_socio a
+                INNER JOIN PUBLIC.tb_qualificacao_socio b
+                    ON         b.cd_qualificacao = a.cd_qualificacao
+                INNER JOIN PUBLIC.tb_qualificacao_socio c
+                    ON         c.cd_qualificacao = a.cd_qualificacao
+                INNER JOIN PUBLIC.tb_pais d
+                    ON         d.cd_pais = a.cd_pais
+                WHERE      a.cd_tipo = '3'
+            );
+            """
+        
+            self.cursor.execute(sql)
+            logger.info('tabelas temp criadas')
         except Exception as e:
             logger.info(str(e))
