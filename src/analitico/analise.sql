@@ -4,14 +4,14 @@ WITH socio_pj
                 A.st_nome,
                 A.st_cpf_cnpj,
                 A.cd_qualificacao,
-                B.st_qualificacao                   AS qualificacao_socio,
+                B.st_qualificacao                                     AS qualificacao_socio,
                 A.dt_entrada,
                 A.cd_pais,
-                D.st_pais                           AS pais,
+                D.st_pais                                             AS pais,
                 A.st_representante,
                 A.st_nome_representante,
                 A.cd_qualificacao_representante,
-                C.st_qualificacao                   AS qualificacao_representante,
+                C.st_qualificacao                                     AS qualificacao_representante,
                 A.cd_faixa_etaria
          FROM   PUBLIC.tb_socio A
                 INNER JOIN PUBLIC.tb_qualificacao_socio B
@@ -29,14 +29,14 @@ WITH socio_pj
                 A.st_nome,
                 A.st_cpf_cnpj,
                 A.cd_qualificacao,
-                B.st_qualificacao                   AS qualificacao_socio,
+                B.st_qualificacao                                     AS qualificacao_socio,
                 A.dt_entrada,
                 A.cd_pais,
-                D.st_pais                           AS pais,
+                D.st_pais                                             AS pais,
                 A.st_representante,
                 A.st_nome_representante,
                 A.cd_qualificacao_representante,
-                C.st_qualificacao                   AS qualificacao_representante,
+                C.st_qualificacao                                     AS qualificacao_representante,
                 A.cd_faixa_etaria
          FROM   PUBLIC.tb_socio A
                 INNER JOIN PUBLIC.tb_qualificacao_socio B
@@ -49,7 +49,7 @@ WITH socio_pj
          ),
 	numero_filiais
 	AS (SELECT st_cnpj_base,
-       	      Count(st_cnpj_base)		            AS quantidade_empresa
+       	      Count(st_cnpj_base)		                     AS quantidade_empresa
 	    FROM   PUBLIC.tb_estabelecimento
 	  --    where st_cnpj_base = '10742854'
 	    GROUP  BY st_cnpj_base 
@@ -61,7 +61,7 @@ SELECT B.st_cnpj_base                                                 AS cnpj_ba
          WHEN B.cd_matriz_filial = '1' THEN 'Matriz'
          ELSE 'Filial'
        END                                                            AS matriz_filial,
-       M.quantidade_empresa									AS quantidade_empresa,
+       M.quantidade_empresa							AS quantidade_empresa,
        Cast(Replace(A.vl_capital_social, ',', '.') AS DECIMAL(15, 2)) AS capital_social,
        A.st_razao_social                                              AS razao_social,
        B.st_nome_fantasia                                             AS nome_fantasia,
@@ -103,7 +103,7 @@ SELECT B.st_cnpj_base                                                 AS cnpj_ba
        B.st_situacao_especial                                         AS situacao_especial,
        B.dt_situacao_especial                                         AS data_situacao_especial,
        I.st_nome                                                      AS nome_socio_adm,
-       J.cd_qualificacao										      AS codigo_qualificacao_socio_adm,
+       J.cd_qualificacao							AS codigo_qualificacao_socio_adm,
        J.st_qualificacao                                              AS qualificacao_socio_adm,
        K.st_nome                                                      AS empresa_socia,
        K.st_cpf_cnpj                                                  AS cnpj_empresa_socia,
@@ -114,7 +114,7 @@ SELECT B.st_cnpj_base                                                 AS cnpj_ba
        L.qualificacao_socio                                           AS qualificacao_socio_estrangeiro,
        L.pais                                                         AS pais_socio_estrangeiro,
        L.st_nome_representante                                        AS nome_socio_estrangeiro,
-       now()												          AS create_at
+       now()									AS create_at
 FROM   PUBLIC.tb_empresa A
        INNER JOIN PUBLIC.tb_estabelecimento B
               ON A.st_cnpj_base = B.st_cnpj_base
