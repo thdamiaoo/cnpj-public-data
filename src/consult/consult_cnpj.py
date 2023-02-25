@@ -7,6 +7,6 @@ sys.path.append(path_src)
 from validate_cnpj.validate_cnpj import Validation
 from database.database import Database
 
-Database().cria_fato()
+Database().cria_tabela_fato()
 
 # Validation().trata_resposta()

@@ -26,8 +26,6 @@ class Database:
             'host': p.scheme
         }
 
-        # print(pg_connection)
-        # exit()
         con = psycopg2.connect(**pg_connection)
         con.autocommit = True
         self.cursor = con.cursor()
@@ -166,51 +164,244 @@ class Database:
         except Exception as e:
             logger.info(str(e))
     
-    def cria_fato(self):
+    def cria_tabelas_tmp(self):
         try:
-            sql = f"""
-            CREATE TABLE IF NOT EXISTS PUBLIC.tmp_socio_pj AS
-            (
-                SELECT  a.st_cnpj_base          AS cnpj_base,
-                        a.st_nome               AS nome,
-                        a.st_cpf_cnpj           AS cpf_cnpj,
-                        b.st_qualificacao       AS qualificacao_socio,
-                        a.dt_entrada            AS data_entrada,
-                        d.st_pais               AS pais,
-                        a.st_nome_representante AS nome_representante,
-                        c.st_qualificacao       AS qualificacao_representante
-                FROM       PUBLIC.tb_socio a
-                INNER JOIN PUBLIC.tb_qualificacao_socio b
-                    ON         b.cd_qualificacao = a.cd_qualificacao
-                INNER JOIN PUBLIC.tb_qualificacao_socio c
-                    ON         c.cd_qualificacao = a.cd_qualificacao
-                INNER JOIN PUBLIC.tb_pais d
-                    ON         d.cd_pais = a.cd_pais
-                WHERE      a.cd_tipo = '1'
-            );
+            logger.info('inicio criacao tabelas temporarias ....')
+            try:
+                sql_socio_pj = f"""
+                CREATE TABLE IF NOT EXISTS PUBLIC.tmp_socio_pj AS
+                (
+                    SELECT  a.st_cnpj_base          AS cnpj_base,
+                            a.st_nome               AS nome,
+                            a.st_cpf_cnpj           AS cpf_cnpj,
+                            b.st_qualificacao       AS qualificacao_socio,
+                            a.dt_entrada            AS data_entrada,
+                            d.st_pais               AS pais,
+                            a.st_nome_representante AS nome_representante,
+                            c.st_qualificacao       AS qualificacao_representante
+                    FROM       PUBLIC.tb_socio a
+                    INNER JOIN PUBLIC.tb_qualificacao_socio b
+                        ON         b.cd_qualificacao = a.cd_qualificacao
+                    INNER JOIN PUBLIC.tb_qualificacao_socio c
+                        ON         c.cd_qualificacao = a.cd_qualificacao
+                    INNER JOIN PUBLIC.tb_pais d
+                        ON         d.cd_pais = a.cd_pais
+                    WHERE      a.cd_tipo = '1'
+                );
+                """
+                self.cursor.execute(sql_socio_pj)
+                logger.info('tabela public.tmp_socio_pj criada')
+            except Exception as e:
+                logger.info(str(e))
+            
+            try:
+                sql_socio_estrangeiro = f"""
+                CREATE TABLE IF NOT EXISTS PUBLIC.tmp_socio_estrangeiro AS
+                (
+                    SELECT  a.st_cnpj_base          AS cnpj_base,
+                            a.st_nome               AS nome,
+                            a.st_cpf_cnpj           AS cpf_cnpj,
+                            b.st_qualificacao       AS qualificacao_socio,
+                            a.dt_entrada            AS data_entrada,
+                            d.st_pais               AS pais,
+                            a.st_nome_representante AS nome_representante,
+                            c.st_qualificacao       AS qualificacao_representante
+                    FROM       PUBLIC.tb_socio a
+                    INNER JOIN PUBLIC.tb_qualificacao_socio b
+                        ON         b.cd_qualificacao = a.cd_qualificacao
+                    INNER JOIN PUBLIC.tb_qualificacao_socio c
+                        ON         c.cd_qualificacao = a.cd_qualificacao
+                    INNER JOIN PUBLIC.tb_pais d
+                        ON         d.cd_pais = a.cd_pais
+                    WHERE      a.cd_tipo = '3'
+                );
+                """
+                self.cursor.execute(sql_socio_estrangeiro)
+                logger.info('tabela public.tmp_socio_estrangeiro criada')
+            except Exception as e:
+                logger.info(str(e))
 
-            CREATE TABLE IF NOT EXISTS PUBLIC.tmp_socio_estrangeiro AS
-            (
-                SELECT  a.st_cnpj_base          AS cnpj_base,
-                        a.st_nome               AS nome,
-                        a.st_cpf_cnpj           AS cpf_cnpj,
-                        b.st_qualificacao       AS qualificacao_socio,
-                        a.dt_entrada            AS data_entrada,
-                        d.st_pais               AS pais,
-                        a.st_nome_representante AS nome_representante,
-                        c.st_qualificacao       AS qualificacao_representante
-                FROM       PUBLIC.tb_socio a
-                INNER JOIN PUBLIC.tb_qualificacao_socio b
-                    ON         b.cd_qualificacao = a.cd_qualificacao
-                INNER JOIN PUBLIC.tb_qualificacao_socio c
-                    ON         c.cd_qualificacao = a.cd_qualificacao
-                INNER JOIN PUBLIC.tb_pais d
-                    ON         d.cd_pais = a.cd_pais
-                WHERE      a.cd_tipo = '3'
-            );
-            """
+            try:
+                sql_matriz_filiais = f"""
+                CREATE TABLE IF NOT EXISTS PUBLIC.tmp_matriz_filiais AS
+                (
+                    SELECT  st_cnpj_base			AS cnpj_base,
+                            COUNT(st_cnpj_base)	    AS quantidade_empresa
+                    FROM   PUBLIC.tb_estabelecimento
+                    GROUP  BY st_cnpj_base
+                );
+                """
+                self.cursor.execute(sql_matriz_filiais)
+                logger.info('tabela public.tmp_matriz_filiais criada')
+            except Exception as e:
+                logger.info(str(e))
+
+            try:
+                sql_socio_adm = f"""
+                CREATE TABLE IF NOT EXISTS PUBLIC.tmp_socio_adm as
+                (
+                    SELECT  B.st_cnpj_base                                                 AS cnpj_base,
+                            B.st_cnpj_ordem                                                AS cnpj_ordem,
+                            CONCAT(B.st_cnpj_base, B.st_cnpj_ordem, B.st_cnpj_dv)          AS cnpj,
+                            CASE
+                                WHEN B.cd_matriz_filial = '1' THEN 'Matriz'
+                                ELSE 'Filial'
+                            END                                                            AS matriz_filial,
+                            CAST(REPLACE(A.vl_capital_social, ',', '.') AS DECIMAL(15, 2)) AS capital_social,
+                            A.st_razao_social                                              AS razao_social,
+                            B.st_nome_fantasia                                             AS nome_fantasia,
+                            G.st_natureza_juridica                                         AS natureza_juridica,
+                            B.cd_situacao_cadastral                                        AS codigo_situacao_cadastral,
+                            B.dt_situacao_cadastral                                        AS data_situacao_cadastral,
+                            F.st_motivo_situacao_cadastral                                 AS motivo_situacao_cadastral,
+                            B.st_cidade_exterior                                           AS cidade_exterior,
+                            E.st_pais                                                      AS pais_exterior,
+                            B.dt_inicio_atividade                                          AS data_inicio_atividade,
+                            B.cd_cnae_principal                                            AS cnae_principal,
+                            C.st_cnae                                                      AS descricao_cnae,
+                            B.cd_cnae_secundario                                           AS cnae_secundario,
+                            B.st_tipo_logradouro                                           AS tipo_logradouro,
+                            B.st_logradouro                                                AS logradouro,
+                            B.st_numero                                                    AS numero,
+                            TRIM(B.st_complemento)                                         AS complemento,
+                            B.st_bairro                                                    AS bairro,
+                            B.st_cep                                                       AS cep,
+                            B.st_uf                                                        AS uf,
+                            D.st_municipio                                                 AS municipio,
+                            CASE
+                                WHEN B.st_uf IN (   'AC', 'AL', 'AP', 'AM',
+                                                    'BA', 'CE', 'DF', 'ES',
+                                                    'GO', 'MA', 'MT', 'MS',
+                                                    'MG', 'PA', 'PB', 'PR',
+                                                    'PE', 'PI', 'RJ', 'RN',
+                                                    'RS', 'RO', 'RR', 'SC',
+                                                    'SP', 'SE', 'TO' ) THEN 'Brasil'
+                                ELSE ''
+                            END                                                            AS pais,
+                            B.st_ddd1                                                      AS ddd1,
+                            B.st_telefone1                                                 AS telefone1,
+                            B.st_ddd2                                                      AS ddd2,
+                            B.st_telefone2                                                 AS telefone2,
+                            B.st_ddd_fax                                                   AS ddd_fax,
+                            B.st_fax                                                       AS fax,
+                            LOWER(B.st_email)                                              AS email,
+                            B.st_situacao_especial                                         AS situacao_especial,
+                            B.dt_situacao_especial                                         AS data_situacao_especial,
+                            I.st_nome                                                      AS nome_socio_adm,
+                            J.cd_qualificacao										       AS codigo_qualificacao_socio_adm,
+                            J.st_qualificacao                                              AS qualificacao_socio_adm
+                    FROM   PUBLIC.tb_empresa A
+                    INNER JOIN PUBLIC.tb_estabelecimento B
+                        ON A.st_cnpj_base = B.st_cnpj_base
+                    LEFT JOIN PUBLIC.tb_cnae C
+                        ON B.cd_cnae_principal = C.cd_cnae
+                    LEFT JOIN PUBLIC.tb_municipios D
+                        ON D.cd_municipio = B.cd_municipio
+                    LEFT JOIN PUBLIC.tb_pais E
+                        ON E.cd_pais = B.cd_pais
+                    LEFT JOIN PUBLIC.tb_motivo_situacao_cadastral F
+                        ON F.cd_motivo_situacao_cadastral = B.cd_motivo_situacao_cadastral
+                    LEFT JOIN PUBLIC.tb_natureza_juridica G
+                        ON A.cd_natureza_juridica = G.cd_natureza_juridica
+                    LEFT JOIN PUBLIC.tb_dados_simples H
+                        ON H.st_cnpj_base = A.st_cnpj_base
+                    INNER JOIN PUBLIC.tb_socio I
+                        ON I.st_cnpj_base = A.st_cnpj_base
+                    LEFT JOIN PUBLIC.tb_qualificacao_socio J
+                        ON I.cd_qualificacao = J.cd_qualificacao
+                    WHERE  B.cd_situacao_cadastral = '02'
+                        AND J.cd_qualificacao = '49'
+                );	
+                """
+                self.cursor.execute(sql_socio_adm)
+                logger.info('tabela public.tmp_socio_adm criada')
+            except Exception as e:
+                logger.info(str(e))
+            
+            logger.info('.... fim criacao tabelas temporarias')
         
-            self.cursor.execute(sql)
-            logger.info('tabelas temp criadas')
+        except Exception as e:
+            logger.info(str(e))
+    
+    def cria_tabela_fato(self):
+        self.cria_tabelas_tmp()
+
+        try:
+            logger.info('inicio criacao fato ...')
+            sql_cria_fato = f"""
+            CREATE TABLE IF NOT EXISTS public.fat_dados_empresa AS
+            (
+                SELECT A.cnpj_base,
+                    A.cnpj_ordem,
+                    A.cnpj,
+                    A.matriz_filial,
+                    D.quantidade_empresa,
+                    A.capital_social,
+                    A.razao_social,
+                    A.nome_fantasia,
+                    A.natureza_juridica,
+                    A.codigo_situacao_cadastral,
+                    A.data_situacao_cadastral,
+                    A.motivo_situacao_cadastral,
+                    A.cidade_exterior,
+                    A.pais_exterior,
+                    A.data_inicio_atividade,
+                    A.cnae_principal,
+                    A.descricao_cnae,
+                    A.cnae_secundario,
+                    A.tipo_logradouro,
+                    A.logradouro,
+                    A.numero,
+                    A.complemento,
+                    A.bairro,
+                    A.cep,
+                    A.uf,
+                    A.municipio,
+                    A.pais,
+                    A.ddd1,
+                    A.telefone1,
+                    A.ddd2,
+                    A.telefone2,
+                    A.ddd_fax,
+                    A.fax,
+                    A.email,
+                    A.situacao_especial,
+                    A.data_situacao_especial,
+                    A.nome_socio_adm,
+                    A.codigo_qualificacao_socio_adm,
+                    A.qualificacao_socio_adm,
+                    B.nome                              AS empresa_socia,
+                    B.cpf_cnpj                          AS cnpj_empresa_socia,
+                    B.qualificacao_socio                AS qualificacao_empresa_socia,
+                    B.pais                              AS pais_empresa_socia,
+                    B.nome_representante                AS representante_empresa_socia,
+                    C.nome                              AS socio_estrangeiro,
+                    C.qualificacao_socio                AS qualificacao_socio_estrangeiro,
+                    C.pais                              AS pais_socio_estrangeiro,
+                    C.nome_representante                AS representante_socio_estrangeiro,
+                    Now()                               AS created_at
+                FROM   public.tmp_socio_adm A
+                        LEFT JOIN public.tmp_socio_pj B
+                                ON A.cnpj_base = B.cnpj_base
+                        LEFT JOIN public.tmp_socio_estrangeiro C
+                                ON A.cnpj_base = C.cnpj_base
+                        LEFT JOIN public.tmp_matriz_filiais D
+                                ON A.cnpj_base = D.cnpj_base); 
+            """
+            self.cursor.execute(sql_cria_fato)
+            logger.info('... fim criacao tabela fato criada')
+        except Exception as e:
+            logger.info(str(e))
+        
+        try:
+            logger.info('dropa temporarias')
+            sql_drop_tmp = f"""
+                DROP TABLE PUBLIC.tmp_socio_pj;
+                DROP TABLE PUBLIC.tmp_socio_estrangeiro;
+                DROP TABLE PUBLIC.tmp_matriz_filiais;
+                DROP TABLE PUBLIC.tmp_socio_adm;
+            """
+            self.cursor.execute(sql_drop_tmp)
+            logger.info('tabelas temporarias dropadas')
         except Exception as e:
             logger.info(str(e))
