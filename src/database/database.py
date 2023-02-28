@@ -235,6 +235,24 @@ class Database:
                 logger.info('tabela public.tmp_matriz_filiais criada')
             except Exception as e:
                 logger.info(str(e))
+            
+            try:
+                sql_numero_socios = f"""
+                CREATE TABLE IF NOT EXISTS PUBLIC.tmp_numero_socios AS
+                (
+                    SELECT CONCAT(B.st_cnpj_base, B.st_cnpj_ordem, B.st_cnpj_dv) AS cnpj,
+                           COUNT(1)                                              AS qtd_contato
+                    FROM   PUBLIC.tb_socio A
+                    LEFT JOIN PUBLIC.tb_estabelecimento B
+                        ON A.st_cnpj_base = B.st_cnpj_base
+                    WHERE  ( B.st_email IS NOT NULL OR B.st_ddd1 IS NOT NULL )
+                    GROUP  BY Concat(B.st_cnpj_base, B.st_cnpj_ordem, B.st_cnpj_dv)
+                );
+                """
+                self.cursor.execute(sql_numero_socios)
+                logger.info('tabela public.tmp_numero_socios criada')
+            except Exception as e:
+                logger.info(str(e))
 
             try:
                 sql_socio_adm = f"""
@@ -286,10 +304,7 @@ class Database:
                             B.st_fax                                                       AS fax,
                             LOWER(B.st_email)                                              AS email,
                             B.st_situacao_especial                                         AS situacao_especial,
-                            B.dt_situacao_especial                                         AS data_situacao_especial,
-                            I.st_nome                                                      AS nome_socio_adm,
-                            J.cd_qualificacao										       AS codigo_qualificacao_socio_adm,
-                            J.st_qualificacao                                              AS qualificacao_socio_adm
+                            B.dt_situacao_especial                                         AS data_situacao_especial
                     FROM   PUBLIC.tb_empresa A
                     INNER JOIN PUBLIC.tb_estabelecimento B
                         ON A.st_cnpj_base = B.st_cnpj_base
@@ -305,14 +320,8 @@ class Database:
                         ON A.cd_natureza_juridica = G.cd_natureza_juridica
                     LEFT JOIN PUBLIC.tb_dados_simples H
                         ON H.st_cnpj_base = A.st_cnpj_base
-                    INNER JOIN PUBLIC.tb_socio I
-                        ON I.st_cnpj_base = A.st_cnpj_base
-                    LEFT JOIN PUBLIC.tb_qualificacao_socio J
-                        ON I.cd_qualificacao = J.cd_qualificacao
-                    WHERE  B.cd_situacao_cadastral = '02'
-                        AND J.cd_qualificacao = '49'
-                );	
-                """
+            );	
+            """
                 self.cursor.execute(sql_socio_adm)
                 logger.info('tabela public.tmp_socio_adm criada')
             except Exception as e:
@@ -331,65 +340,66 @@ class Database:
             sql_cria_fato = f"""
             CREATE TABLE IF NOT EXISTS public.fat_dados_empresa AS
             (
-                SELECT A.cnpj_base,
-                    A.cnpj_ordem,
-                    A.cnpj,
-                    A.matriz_filial,
-                    D.quantidade_empresa,
-                    A.capital_social,
-                    A.razao_social,
-                    A.nome_fantasia,
-                    A.natureza_juridica,
-                    A.codigo_situacao_cadastral,
-                    A.data_situacao_cadastral,
-                    A.motivo_situacao_cadastral,
-                    A.cidade_exterior,
-                    A.pais_exterior,
-                    A.data_inicio_atividade,
-                    A.cnae_principal,
-                    A.descricao_cnae,
-                    A.cnae_secundario,
-                    A.tipo_logradouro,
-                    A.logradouro,
-                    A.numero,
-                    A.complemento,
-                    A.bairro,
-                    A.cep,
-                    A.uf,
-                    A.municipio,
-                    A.pais,
-                    A.ddd1,
-                    A.telefone1,
-                    A.ddd2,
-                    A.telefone2,
-                    A.ddd_fax,
-                    A.fax,
-                    A.email,
-                    A.situacao_especial,
-                    A.data_situacao_especial,
-                    A.nome_socio_adm,
-                    A.codigo_qualificacao_socio_adm,
-                    A.qualificacao_socio_adm,
-                    B.nome                              AS empresa_socia,
-                    B.cpf_cnpj                          AS cnpj_empresa_socia,
-                    B.qualificacao_socio                AS qualificacao_empresa_socia,
-                    B.pais                              AS pais_empresa_socia,
-                    B.nome_representante                AS representante_empresa_socia,
-                    C.nome                              AS socio_estrangeiro,
-                    C.qualificacao_socio                AS qualificacao_socio_estrangeiro,
-                    C.pais                              AS pais_socio_estrangeiro,
-                    C.nome_representante                AS representante_socio_estrangeiro,
-                    Now()                               AS created_at
-                FROM   public.tmp_socio_adm A
-                        LEFT JOIN public.tmp_socio_pj B
-                                ON A.cnpj_base = B.cnpj_base
-                        LEFT JOIN public.tmp_socio_estrangeiro C
-                                ON A.cnpj_base = C.cnpj_base
-                        LEFT JOIN public.tmp_matriz_filiais D
-                                ON A.cnpj_base = D.cnpj_base); 
+                SELECT  A.cnpj_base,
+                        A.cnpj_ordem,
+                        A.cnpj,
+                        A.matriz_filial,
+                        D.quantidade_empresa,
+                        E.qtd_contato                   AS contatos_validos,
+                        A.capital_social,
+                        A.razao_social,
+                        A.nome_fantasia,
+                        A.natureza_juridica,
+                        A.codigo_situacao_cadastral,
+                        A.data_situacao_cadastral,
+                        A.motivo_situacao_cadastral,
+                        A.cidade_exterior,
+                        A.pais_exterior,
+                        A.data_inicio_atividade,
+                        A.cnae_principal,
+                        A.descricao_cnae,
+                        A.cnae_secundario,
+                        A.tipo_logradouro,
+                        A.logradouro,
+                        A.numero,
+                        A.complemento,
+                        A.bairro,
+                        A.cep,
+                        A.uf,
+                        A.municipio,
+                        A.pais,
+                        A.ddd1,
+                        A.telefone1,
+                        A.ddd2,
+                        A.telefone2,
+                        A.ddd_fax,
+                        A.fax,
+                        A.email,
+                        A.situacao_especial,
+                        A.data_situacao_especial,
+                        B.nome                          AS empresa_socia,
+                        B.cpf_cnpj                      AS cnpj_empresa_socia,
+                        B.qualificacao_socio            AS qualificacao_empresa_socia,
+                        B.pais                          AS pais_empresa_socia,
+                        B.nome_representante            AS representante_empresa_socia,
+                        C.nome                          AS socio_estrangeiro,
+                        C.qualificacao_socio            AS qualificacao_socio_estrangeiro,
+                        C.pais                          AS pais_socio_estrangeiro,
+                        C.nome_representante            AS representante_socio_estrangeiro,
+                        NOW()                           AS created_at
+                    FROM   PUBLIC.tmp_socio_adm A
+                    LEFT JOIN PUBLIC.tmp_socio_pj B
+                        ON A.cnpj_base = B.cnpj_base
+                    LEFT JOIN PUBLIC.tmp_socio_estrangeiro C
+                        ON A.cnpj_base = C.cnpj_base
+                    LEFT JOIN PUBLIC.tmp_matriz_filiais D
+                        ON A.cnpj_base = D.cnpj_base
+                    LEFT JOIN PUBLIC.tmp_numero_socios E
+                        ON A.cnpj = E.cnpj 
+            ); 
             """
             self.cursor.execute(sql_cria_fato)
-            logger.info('... fim criacao tabela fato criada')
+            logger.info('... fim criacao tabela fato')
         except Exception as e:
             logger.info(str(e))
         
@@ -400,6 +410,7 @@ class Database:
                 DROP TABLE PUBLIC.tmp_socio_estrangeiro;
                 DROP TABLE PUBLIC.tmp_matriz_filiais;
                 DROP TABLE PUBLIC.tmp_socio_adm;
+                DROP TABLE PUBLIC.tmp_numero_socios;
             """
             self.cursor.execute(sql_drop_tmp)
             logger.info('tabelas temporarias dropadas')
