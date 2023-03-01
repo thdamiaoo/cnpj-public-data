@@ -31,138 +31,6 @@ class Database:
         self.cursor = con.cursor()
         # self.cria_tabela_empresas()
         # self.dados_brutos()
-
-    def cria_tabela_empresas(self):
-        try:
-            sql = f"""
-                        CREATE TABLE IF NOT EXISTS public.empresa 
-                            (
-                                id serial4 NOT NULL,
-                                codigo text NULL,
-                                descricao varchar(500) NULL,
-                                cnpj text NULL,
-                                data_situacao text NULL,
-                                motivo_situacao text NULL,
-                                tipo text NULL,
-                                nome text NULL,
-                                fantasia text NULL,
-                                porte text NULL,
-                                natureza_juridica text NULL,
-                                abertura text NULL,
-                                email text NULL,
-                                qsa text NULL,
-                                situacao text NULL,
-                                logradouro text NULL,
-                                numero text NULL,
-                                municipio text NULL,
-                                bairro text NULL,
-                                uf text NULL,
-                                telefone text NULL,
-                                cep text NULL,
-                                complemento text NULL,
-                                efr text NULL,
-                                situacao_especial text NULL,
-                                data_situacao_especial text NULL,
-                                atividade_principal text NULL,
-                                capital_social text NULL,
-                                extra text NULL,
-                                billing text NULL,
-                                ultima_atualizacao text NULL,
-                                status text NULL,
-                                created_at timestamptz NULL DEFAULT CURRENT_TIMESTAMP
-                            );
-                    """
-            self.cursor.execute(sql)
-            logger.info('tabela empresa - OK')            
-        except Exception as e:
-            logger.info(str(e))
-    
-    def insere_dados_empresa(self, data, cnpj):
-        try:
-            sql = f"""
-                BEGIN;
-                LOCK TABLE public.empresa IN SHARE ROW EXCLUSIVE MODE;
-                INSERT INTO public.empresa
-                    (
-                        codigo,
-                        descricao,
-                        cnpj,
-                        data_situacao,
-                        motivo_situacao,
-                        tipo,
-                        nome,
-                        fantasia,
-                        porte,
-                        natureza_juridica,
-                        abertura,
-                        email,
-                        qsa,
-                        situacao,
-                        logradouro,
-                        numero,
-                        municipio,
-                        bairro,
-                        uf,
-                        telefone,
-                        cep,
-                        complemento,
-                        efr,
-                        situacao_especial,
-                        data_situacao_especial,
-                        atividade_principal,
-                        capital_social,
-                        extra,
-                        billing,
-                        ultima_atualizacao,
-                        status
-                    )
-                VALUES({data});
-            """
-            print('aqui')
-            print(data)
-            try:
-                self.cursor.execute(sql)
-                print('feito')
-            except Exception as e:
-                print(str(e))
-            logger.info(f'dados cnpj {cnpj} inseridos') 
-        except Exception as e:
-            logger.info(str(e))
-    
-    def dados_brutos(self):
-        try:
-            sql = f"""
-                CREATE TABLE IF NOT EXISTS public.cadastro_bruto 
-                    (   
-                        id serial4 NOT NULL,
-                        cnpj varchar(100) NULL,
-                        conteudo text,
-                        created_at timestamptz NULL DEFAULT CURRENT_TIMESTAMP,
-                        CONSTRAINT nfe_pkey PRIMARY KEY (id)
-                    );
-            """
-            self.cursor.execute(sql)
-            logger.info('tabela cadastro_bruto - OK') 
-        except Exception as e:
-            logger.info(str(e))
-    
-    def insere_dados_brutos(self, cnpj, data):
-        try:
-            sql = f"""
-            BEGIN;
-            LOCK TABLE public.cadastro_bruto IN SHARE ROW EXCLUSIVE MODE;
-            INSERT INTO public.cadastro_bruto
-                (
-                    cnpj, 
-                    conteudo
-                )
-            SELECT cnpj, '{data[1].replace("'",'').replace('%', '')}'
-            
-            COMMIT;
-            """
-            self.cursor.execute(sql, data)
-        except Exception as e:
-            logger.info(str(e))
     
     def cria_tabelas_tmp(self):
         try:
@@ -220,6 +88,29 @@ class Database:
                 logger.info('tabela public.tmp_socio_estrangeiro criada')
             except Exception as e:
                 logger.info(str(e))
+            
+            try:
+                sql_socio_adm = f"""
+                CREATE TABLE IF NOT EXISTS public.tmp_socio_adm AS
+                (
+                    SELECT  a.st_cnpj_base    AS cnpj_base,
+                            a.st_nome         AS nome_socio_adm,
+                            a.st_cpf_cnpj     AS cpf_cnpj,
+                            b.st_qualificacao AS qualificacao_socio,
+                            a.dt_entrada      AS data_entrada,
+                            d.st_pais         AS pais
+                    FROM   public.tb_socio a
+                    INNER JOIN public.tb_qualificacao_socio b
+                        ON b.cd_qualificacao = a.cd_qualificacao
+                    INNER JOIN public.tb_pais d
+                        ON d.cd_pais = a.cd_pais
+                    WHERE  a.cd_tipo = '2'
+                        AND b.cd_qualificacao = '49');
+                """
+                self.cursor.execute(sql_socio_adm)
+                logger.info('tabela public.tmp_socio_adm criada')
+            except Exception as e:
+                logger.info(str(e))
 
             try:
                 sql_matriz_filiais = f"""
@@ -255,8 +146,8 @@ class Database:
                 logger.info(str(e))
 
             try:
-                sql_socio_adm = f"""
-                CREATE TABLE IF NOT EXISTS PUBLIC.tmp_socio_adm as
+                sql_empresa_geral = f"""
+                CREATE TABLE IF NOT EXISTS PUBLIC.tmp_empresa_geral as
                 (
                     SELECT  B.st_cnpj_base                                                 AS cnpj_base,
                             B.st_cnpj_ordem                                                AS cnpj_ordem,
@@ -304,7 +195,13 @@ class Database:
                             B.st_fax                                                       AS fax,
                             LOWER(B.st_email)                                              AS email,
                             B.st_situacao_especial                                         AS situacao_especial,
-                            B.dt_situacao_especial                                         AS data_situacao_especial
+                            B.dt_situacao_especial                                         AS data_situacao_especial,
+                            H.st_opcao_simples                                             AS opcao_simples,
+                            H.dt_opcao_simples                                             AS data_opcao_simples,
+                            H.dt_exclusao_simples                                          AS data_exclusao_simples,
+                            H.st_opcao_mei                                                 AS opcao_mei,
+                            H.dt_opcao_mei                                                 AS data_opcao_mei,
+                            H.dt_exclusao_mei                                              AS data_exclusao_mei
                     FROM   PUBLIC.tb_empresa A
                     INNER JOIN PUBLIC.tb_estabelecimento B
                         ON A.st_cnpj_base = B.st_cnpj_base
@@ -322,8 +219,8 @@ class Database:
                         ON H.st_cnpj_base = A.st_cnpj_base
             );	
             """
-                self.cursor.execute(sql_socio_adm)
-                logger.info('tabela public.tmp_socio_adm criada')
+                self.cursor.execute(sql_empresa_geral)
+                logger.info('tabela public.tmp_empresa_geral criada')
             except Exception as e:
                 logger.info(str(e))
             
@@ -340,12 +237,13 @@ class Database:
             sql_cria_fato = f"""
             CREATE TABLE IF NOT EXISTS public.fat_dados_empresa AS
             (
-                SELECT  A.cnpj_base,
+                SELECT  row_number() OVER (PARTITION by 0) AS sk_dados_empresa,
+                        A.cnpj_base,
                         A.cnpj_ordem,
                         A.cnpj,
                         A.matriz_filial,
                         D.quantidade_empresa,
-                        E.qtd_contato                   AS contatos_validos,
+                        E.qtd_contato                       AS contatos_validos,
                         A.capital_social,
                         A.razao_social,
                         A.nome_fantasia,
@@ -377,17 +275,25 @@ class Database:
                         A.email,
                         A.situacao_especial,
                         A.data_situacao_especial,
-                        B.nome                          AS empresa_socia,
-                        B.cpf_cnpj                      AS cnpj_empresa_socia,
-                        B.qualificacao_socio            AS qualificacao_empresa_socia,
-                        B.pais                          AS pais_empresa_socia,
-                        B.nome_representante            AS representante_empresa_socia,
-                        C.nome                          AS socio_estrangeiro,
-                        C.qualificacao_socio            AS qualificacao_socio_estrangeiro,
-                        C.pais                          AS pais_socio_estrangeiro,
-                        C.nome_representante            AS representante_socio_estrangeiro,
-                        NOW()                           AS created_at
-                    FROM   PUBLIC.tmp_socio_adm A
+                        A.opcao_simples,
+                        A.data_opcao_simples,
+                        A.data_exclusao_simples,
+                        A.opcao_mei,
+                        A.data_opcao_mei,
+                        A.data_exclusao_mei,
+                        F.nome_socio_adm                    AS socio_adm,
+                        F.pais                              AS pais_socio_adm,
+                        B.nome                              AS empresa_socia,
+                        B.cpf_cnpj                          AS cnpj_empresa_socia,
+                        B.qualificacao_socio                AS qualificacao_empresa_socia,
+                        B.pais                              AS pais_empresa_socia,
+                        B.nome_representante                AS representante_empresa_socia,
+                        C.nome                              AS socio_estrangeiro,
+                        C.qualificacao_socio                AS qualificacao_socio_estrangeiro,
+                        C.pais                              AS pais_socio_estrangeiro,
+                        C.nome_representante                AS representante_socio_estrangeiro,
+                        NOW()                               AS created_at
+                    FROM   PUBLIC.tmp_empresa_geral A
                     LEFT JOIN PUBLIC.tmp_socio_pj B
                         ON A.cnpj_base = B.cnpj_base
                     LEFT JOIN PUBLIC.tmp_socio_estrangeiro C
@@ -395,7 +301,9 @@ class Database:
                     LEFT JOIN PUBLIC.tmp_matriz_filiais D
                         ON A.cnpj_base = D.cnpj_base
                     LEFT JOIN PUBLIC.tmp_numero_socios E
-                        ON A.cnpj = E.cnpj 
+                        ON A.cnpj = E.cnpj
+                    LEFT JOIN PUBLIC.tmp_socio_adm F
+                        ON A.cnpj_base = F.cnpj_base 
             ); 
             """
             self.cursor.execute(sql_cria_fato)
@@ -409,10 +317,143 @@ class Database:
                 DROP TABLE PUBLIC.tmp_socio_pj;
                 DROP TABLE PUBLIC.tmp_socio_estrangeiro;
                 DROP TABLE PUBLIC.tmp_matriz_filiais;
-                DROP TABLE PUBLIC.tmp_socio_adm;
+                DROP TABLE PUBLIC.tmp_empresa_geral;
                 DROP TABLE PUBLIC.tmp_numero_socios;
+                DROP TABLE PUBLIC.tmp_socio_adm;
             """
             self.cursor.execute(sql_drop_tmp)
             logger.info('tabelas temporarias dropadas')
         except Exception as e:
             logger.info(str(e))
+
+     # def cria_tabela_empresas(self):
+    #     try:
+    #         sql = f"""
+    #                     CREATE TABLE IF NOT EXISTS public.empresa 
+    #                         (
+    #                             id serial4 NOT NULL,
+    #                             codigo text NULL,
+    #                             descricao varchar(500) NULL,
+    #                             cnpj text NULL,
+    #                             data_situacao text NULL,
+    #                             motivo_situacao text NULL,
+    #                             tipo text NULL,
+    #                             nome text NULL,
+    #                             fantasia text NULL,
+    #                             porte text NULL,
+    #                             natureza_juridica text NULL,
+    #                             abertura text NULL,
+    #                             email text NULL,
+    #                             qsa text NULL,
+    #                             situacao text NULL,
+    #                             logradouro text NULL,
+    #                             numero text NULL,
+    #                             municipio text NULL,
+    #                             bairro text NULL,
+    #                             uf text NULL,
+    #                             telefone text NULL,
+    #                             cep text NULL,
+    #                             complemento text NULL,
+    #                             efr text NULL,
+    #                             situacao_especial text NULL,
+    #                             data_situacao_especial text NULL,
+    #                             atividade_principal text NULL,
+    #                             capital_social text NULL,
+    #                             extra text NULL,
+    #                             billing text NULL,
+    #                             ultima_atualizacao text NULL,
+    #                             status text NULL,
+    #                             created_at timestamptz NULL DEFAULT CURRENT_TIMESTAMP
+    #                         );
+    #                 """
+    #         self.cursor.execute(sql)
+    #         logger.info('tabela empresa - OK')            
+    #     except Exception as e:
+    #         logger.info(str(e))
+    
+    # def insere_dados_empresa(self, data, cnpj):
+    #     try:
+    #         sql = f"""
+    #             BEGIN;
+    #             LOCK TABLE public.empresa IN SHARE ROW EXCLUSIVE MODE;
+    #             INSERT INTO public.empresa
+    #                 (
+    #                     codigo,
+    #                     descricao,
+    #                     cnpj,
+    #                     data_situacao,
+    #                     motivo_situacao,
+    #                     tipo,
+    #                     nome,
+    #                     fantasia,
+    #                     porte,
+    #                     natureza_juridica,
+    #                     abertura,
+    #                     email,
+    #                     qsa,
+    #                     situacao,
+    #                     logradouro,
+    #                     numero,
+    #                     municipio,
+    #                     bairro,
+    #                     uf,
+    #                     telefone,
+    #                     cep,
+    #                     complemento,
+    #                     efr,
+    #                     situacao_especial,
+    #                     data_situacao_especial,
+    #                     atividade_principal,
+    #                     capital_social,
+    #                     extra,
+    #                     billing,
+    #                     ultima_atualizacao,
+    #                     status
+    #                 )
+    #             VALUES({data});
+    #         """
+    #         print('aqui')
+    #         print(data)
+    #         try:
+    #             self.cursor.execute(sql)
+    #             print('feito')
+    #         except Exception as e:
+    #             print(str(e))
+    #         logger.info(f'dados cnpj {cnpj} inseridos') 
+    #     except Exception as e:
+    #         logger.info(str(e))
+    
+    # def dados_brutos(self):
+    #     try:
+    #         sql = f"""
+    #             CREATE TABLE IF NOT EXISTS public.cadastro_bruto 
+    #                 (   
+    #                     id serial4 NOT NULL,
+    #                     cnpj varchar(100) NULL,
+    #                     conteudo text,
+    #                     created_at timestamptz NULL DEFAULT CURRENT_TIMESTAMP,
+    #                     CONSTRAINT nfe_pkey PRIMARY KEY (id)
+    #                 );
+    #         """
+    #         self.cursor.execute(sql)
+    #         logger.info('tabela cadastro_bruto - OK') 
+    #     except Exception as e:
+    #         logger.info(str(e))
+    
+    # def insere_dados_brutos(self, cnpj, data):
+    #     try:
+    #         sql = f"""
+    #         BEGIN;
+    #         LOCK TABLE public.cadastro_bruto IN SHARE ROW EXCLUSIVE MODE;
+    #         INSERT INTO public.cadastro_bruto
+    #             (
+    #                 cnpj, 
+    #                 conteudo
+    #             )
+    #         SELECT cnpj, '{data[1].replace("'",'').replace('%', '')}'
+            
+    #         COMMIT;
+    #         """
+    #         self.cursor.execute(sql, data)
+    #     except Exception as e:
+    #         logger.info(str(e))
