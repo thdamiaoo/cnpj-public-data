@@ -88,32 +88,32 @@ class DB_CNPJ:
             # Create postgresql engine 
             self.engine = create_engine(f'postgresql://{self.user}:{self.password}@{self.serverip}/monkey_business') #/postgres?options=-csearch_path%3D{self.schema}')
 
-        self.layout_files = {'EMPRESAS': {'columns':
+        self.layout_files = {   'EMPRESAS': {'columns':
                                 {'st_cnpj_base': [], 'st_razao_social': [], 'cd_natureza_juridica': [], 'cd_qualificacao': [],
                                     'vl_capital_social': [], 'cd_porte_empresa': [], 'st_ente_federativo': []},
                                 'table_name_db': 'tb_empresa'},
-                            'ESTABELECIMENTOS': {'columns':
-                                        {'st_cnpj_base': [], 'st_cnpj_ordem': [], 'st_cnpj_dv': [], 'cd_matriz_filial': [], 'st_nome_fantasia': [], 'cd_situacao_cadastral': [],
-                                        'dt_situacao_cadastral': [], 'cd_motivo_situacao_cadastral': [], 'st_cidade_exterior': [], 'cd_pais': [], 'dt_inicio_atividade': [],
-                                        'cd_cnae_principal': [], 'cd_cnae_secundario': [], 'st_tipo_logradouro': [], 'st_logradouro': [], 'st_numero': [], 'st_complemento': [],
-                                        'st_bairro': [], 'st_cep': [], 'st_uf': [], 'cd_municipio': [], 'st_ddd1': [], 'st_telefone1': [], 'st_ddd2': [], 'st_telefone2': [],
-                                        'st_ddd_fax': [], 'st_fax': [], 'st_email': [], 'st_situacao_especial': [], 'dt_situacao_especial': []
-                                        }, 'table_name_db': 'tb_estabelecimento'},
-                            'SIMPLES': {'columns':
-                                        {'st_cnpj_base': [], 'st_opcao_simples': [], 'dt_opcao_simples': [], 'dt_exclusao_simples': [],
-                                        'st_opcao_mei': [], 'dt_opcao_mei': [], 'dt_exclusao_mei': []
-                                        }, 'table_name_db': 'tb_dados_simples'},
-                            'SOCIOS': {'columns':
-                                    {'st_cnpj_base': [], 'cd_tipo': [], 'st_nome': [], 'st_cpf_cnpj': [], 'cd_qualificacao': [], 'dt_entrada': [],
-                                        'cd_pais': [], 'st_representante': [], 'st_nome_representante': [], 'cd_qualificacao_representante': [], 'cd_faixa_etaria': []},
-                                    'table_name_db': 'tb_socio'},
-                            'PAISES': {'columns': {'cd_pais': [], 'st_pais': []}, 'table_name_db': 'tb_pais'},
-                            'MUNICIPIOS': {'columns': {'cd_municipio': [], 'st_municipio': []}, 'table_name_db': 'tb_municipios'},
-                            'QUALIFICACOES': {'columns': {'cd_qualificacao': [], 'st_qualificacao': []}, 'table_name_db': 'tb_qualificacao_socio'},
-                            'NATUREZAS': {'columns': {'cd_natureza_juridica': [], 'st_natureza_juridica': []}, 'table_name_db': 'tb_natureza_juridica'},
-                            'MOTIVOS': {'columns': {'cd_motivo_situacao_cadastral': [], 'st_motivo_situacao_cadastral': []}, 'table_name_db': 'tb_motivo_situacao_cadastral'},
-                            'CNAES': {'columns': {'cd_cnae': [], 'st_cnae': []}, 'table_name_db': 'tb_cnae'}
-                        }
+                                'ESTABELECIMENTOS': {'columns':
+                                            {'st_cnpj_base': [], 'st_cnpj_ordem': [], 'st_cnpj_dv': [], 'cd_matriz_filial': [], 'st_nome_fantasia': [], 'cd_situacao_cadastral': [],
+                                            'dt_situacao_cadastral': [], 'cd_motivo_situacao_cadastral': [], 'st_cidade_exterior': [], 'cd_pais': [], 'dt_inicio_atividade': [],
+                                            'cd_cnae_principal': [], 'cd_cnae_secundario': [], 'st_tipo_logradouro': [], 'st_logradouro': [], 'st_numero': [], 'st_complemento': [],
+                                            'st_bairro': [], 'st_cep': [], 'st_uf': [], 'cd_municipio': [], 'st_ddd1': [], 'st_telefone1': [], 'st_ddd2': [], 'st_telefone2': [],
+                                            'st_ddd_fax': [], 'st_fax': [], 'st_email': [], 'st_situacao_especial': [], 'dt_situacao_especial': []
+                                            }, 'table_name_db': 'tb_estabelecimento'},
+                                'SIMPLES': {'columns':
+                                            {'st_cnpj_base': [], 'st_opcao_simples': [], 'dt_opcao_simples': [], 'dt_exclusao_simples': [],
+                                            'st_opcao_mei': [], 'dt_opcao_mei': [], 'dt_exclusao_mei': []
+                                            }, 'table_name_db': 'tb_dados_simples'},
+                                'SOCIOS': {'columns':
+                                        {'st_cnpj_base': [], 'cd_tipo': [], 'st_nome': [], 'st_cpf_cnpj': [], 'cd_qualificacao': [], 'dt_entrada': [],
+                                            'cd_pais': [], 'st_representante': [], 'st_nome_representante': [], 'cd_qualificacao_representante': [], 'cd_faixa_etaria': []},
+                                        'table_name_db': 'tb_socio'},
+                                'PAISES': {'columns': {'cd_pais': [], 'st_pais': []}, 'table_name_db': 'tb_pais'},
+                                'MUNICIPIOS': {'columns': {'cd_municipio': [], 'st_municipio': []}, 'table_name_db': 'tb_municipios'},
+                                'QUALIFICACOES': {'columns': {'cd_qualificacao': [], 'st_qualificacao': []}, 'table_name_db': 'tb_qualificacao_socio'},
+                                'NATUREZAS': {'columns': {'cd_natureza_juridica': [], 'st_natureza_juridica': []}, 'table_name_db': 'tb_natureza_juridica'},
+                                'MOTIVOS': {'columns': {'cd_motivo_situacao_cadastral': [], 'st_motivo_situacao_cadastral': []}, 'table_name_db': 'tb_motivo_situacao_cadastral'},
+                                'CNAES': {'columns': {'cd_cnae': [], 'st_cnae': []}, 'table_name_db': 'tb_cnae'}
+                            }
 
         for _ , row in self.df.iterrows():
             # Check loaded files

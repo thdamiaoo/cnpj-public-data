@@ -3,6 +3,7 @@ from urllib.parse import urlparse
 import logging
 import sys
 import pathlib
+import pandas as pd
 
 path_src = str(pathlib.Path(__file__).parent.resolve()) + '/../'
 sys.path.append(path_src)
@@ -26,9 +27,9 @@ class Database:
             'host': p.scheme
         }
 
-        con = psycopg2.connect(**pg_connection)
-        con.autocommit = True
-        self.cursor = con.cursor()
+        self.con = psycopg2.connect(**pg_connection)
+        self.con.autocommit = True
+        self.cursor = self.con.cursor()
         # self.cria_tabela_empresas()
         # self.dados_brutos()
     
@@ -325,6 +326,18 @@ class Database:
             logger.info('tabelas temporarias dropadas')
         except Exception as e:
             logger.info(str(e))
+    
+    def dados_fato(self):
+        try:
+            sql = 'SELECT * FROM public.fat_dados_empresa LIMIT 100;'
+            df = pd.read_sql(sql, self.con)
+            logger.info('Todos os dados foram selecionados')
+            return df 
+        except Exception as e:
+            logger.info(str(e))
+
+
+
 
      # def cria_tabela_empresas(self):
     #     try:
