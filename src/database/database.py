@@ -315,12 +315,12 @@ class Database:
         try:
             logger.info('dropa temporarias')
             sql_drop_tmp = f"""
-                DROP TABLE PUBLIC.tmp_socio_pj;
-                DROP TABLE PUBLIC.tmp_socio_estrangeiro;
-                DROP TABLE PUBLIC.tmp_matriz_filiais;
-                DROP TABLE PUBLIC.tmp_empresa_geral;
-                DROP TABLE PUBLIC.tmp_numero_socios;
-                DROP TABLE PUBLIC.tmp_socio_adm;
+                    DROP TABLE PUBLIC.tmp_socio_pj;
+                    DROP TABLE PUBLIC.tmp_socio_estrangeiro;
+                    DROP TABLE PUBLIC.tmp_matriz_filiais;
+                    DROP TABLE PUBLIC.tmp_empresa_geral;
+                    DROP TABLE PUBLIC.tmp_numero_socios;
+                    DROP TABLE PUBLIC.tmp_socio_adm;
             """
             self.cursor.execute(sql_drop_tmp)
             logger.info('tabelas temporarias dropadas')
@@ -329,144 +329,43 @@ class Database:
     
     def dados_fato(self):
         try:
-            sql = 'SELECT * FROM public.fat_dados_empresa LIMIT 100;'
+            sql = f"""
+                    SELECT  REGEXP_REPLACE
+                                (cnpj, '(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})',
+                                       '\1.\2.\3/\4-\5')                                AS "CNPJ",
+                            matriz_filial                                               AS "Matriz/Filial",
+                            INITCAP(razao_social)                                       AS "Razão Social",
+                            INITCAP(nome_fantasia)                                      AS "Nome",
+                            natureza_juridica 	                                        AS "Natureza Jurídica",
+                            TO_CHAR(data_situacao_cadastral::timestamp, 'DD-MM-YYYY')   AS "Data Situação",
+                            TO_CHAR(data_inicio_atividade::timestamp, 'DD-MM-YYYY')     AS "Data Abertura",
+                            cnae_principal                                              AS "CNAE",
+                            descricao_cnae                                              AS "Atividade",
+                            TRIM(cnae_secundario)                                       AS "CNAE Secundário",
+                            INITCAP(tipo_logradouro)                                    AS "Tipo Logradouro ",
+                            INITCAP(logradouro)                                         AS "Logradouro",
+                            numero                                                      AS "Número",
+                            INITCAP(complemento)                                        AS "Complemento",
+                            INITCAP(bairro)                                             AS "Bairro",
+                            INITCAP(municipio)                                          AS "Município",
+                            REGEXP_REPLACE(cep, '([0-9]{5})([0-9]{3})','\1-\2')         AS "CEP",
+                            uf                                                          AS "UF",
+                            pais                                                        AS "País",
+                            ddd1                                                        AS "DDD",
+                            telefone1                                                   AS "Telefone",
+                            ddd2                                                        AS "DDD 2",
+                            telefone2                                                   AS "Telefone 2",
+                            LOWER(email)                                                AS "E-mail",
+                            CASE
+                                WHEN opcao_simples = 'N' THEN 'Não'
+                                ELSE 'Sim'
+                            END                                                         AS "Simples Nacional",
+                            quantidade_empresa 	                                        AS "Número de empresas"
+                    FROM   PUBLIC.fat_dados_empresa
+                    LIMIT 10000;
+            """
             df = pd.read_sql(sql, self.con)
             logger.info('Todos os dados foram selecionados')
             return df 
         except Exception as e:
             logger.info(str(e))
-
-
-
-
-     # def cria_tabela_empresas(self):
-    #     try:
-    #         sql = f"""
-    #                     CREATE TABLE IF NOT EXISTS public.empresa 
-    #                         (
-    #                             id serial4 NOT NULL,
-    #                             codigo text NULL,
-    #                             descricao varchar(500) NULL,
-    #                             cnpj text NULL,
-    #                             data_situacao text NULL,
-    #                             motivo_situacao text NULL,
-    #                             tipo text NULL,
-    #                             nome text NULL,
-    #                             fantasia text NULL,
-    #                             porte text NULL,
-    #                             natureza_juridica text NULL,
-    #                             abertura text NULL,
-    #                             email text NULL,
-    #                             qsa text NULL,
-    #                             situacao text NULL,
-    #                             logradouro text NULL,
-    #                             numero text NULL,
-    #                             municipio text NULL,
-    #                             bairro text NULL,
-    #                             uf text NULL,
-    #                             telefone text NULL,
-    #                             cep text NULL,
-    #                             complemento text NULL,
-    #                             efr text NULL,
-    #                             situacao_especial text NULL,
-    #                             data_situacao_especial text NULL,
-    #                             atividade_principal text NULL,
-    #                             capital_social text NULL,
-    #                             extra text NULL,
-    #                             billing text NULL,
-    #                             ultima_atualizacao text NULL,
-    #                             status text NULL,
-    #                             created_at timestamptz NULL DEFAULT CURRENT_TIMESTAMP
-    #                         );
-    #                 """
-    #         self.cursor.execute(sql)
-    #         logger.info('tabela empresa - OK')            
-    #     except Exception as e:
-    #         logger.info(str(e))
-    
-    # def insere_dados_empresa(self, data, cnpj):
-    #     try:
-    #         sql = f"""
-    #             BEGIN;
-    #             LOCK TABLE public.empresa IN SHARE ROW EXCLUSIVE MODE;
-    #             INSERT INTO public.empresa
-    #                 (
-    #                     codigo,
-    #                     descricao,
-    #                     cnpj,
-    #                     data_situacao,
-    #                     motivo_situacao,
-    #                     tipo,
-    #                     nome,
-    #                     fantasia,
-    #                     porte,
-    #                     natureza_juridica,
-    #                     abertura,
-    #                     email,
-    #                     qsa,
-    #                     situacao,
-    #                     logradouro,
-    #                     numero,
-    #                     municipio,
-    #                     bairro,
-    #                     uf,
-    #                     telefone,
-    #                     cep,
-    #                     complemento,
-    #                     efr,
-    #                     situacao_especial,
-    #                     data_situacao_especial,
-    #                     atividade_principal,
-    #                     capital_social,
-    #                     extra,
-    #                     billing,
-    #                     ultima_atualizacao,
-    #                     status
-    #                 )
-    #             VALUES({data});
-    #         """
-    #         print('aqui')
-    #         print(data)
-    #         try:
-    #             self.cursor.execute(sql)
-    #             print('feito')
-    #         except Exception as e:
-    #             print(str(e))
-    #         logger.info(f'dados cnpj {cnpj} inseridos') 
-    #     except Exception as e:
-    #         logger.info(str(e))
-    
-    # def dados_brutos(self):
-    #     try:
-    #         sql = f"""
-    #             CREATE TABLE IF NOT EXISTS public.cadastro_bruto 
-    #                 (   
-    #                     id serial4 NOT NULL,
-    #                     cnpj varchar(100) NULL,
-    #                     conteudo text,
-    #                     created_at timestamptz NULL DEFAULT CURRENT_TIMESTAMP,
-    #                     CONSTRAINT nfe_pkey PRIMARY KEY (id)
-    #                 );
-    #         """
-    #         self.cursor.execute(sql)
-    #         logger.info('tabela cadastro_bruto - OK') 
-    #     except Exception as e:
-    #         logger.info(str(e))
-    
-    # def insere_dados_brutos(self, cnpj, data):
-    #     try:
-    #         sql = f"""
-    #         BEGIN;
-    #         LOCK TABLE public.cadastro_bruto IN SHARE ROW EXCLUSIVE MODE;
-    #         INSERT INTO public.cadastro_bruto
-    #             (
-    #                 cnpj, 
-    #                 conteudo
-    #             )
-    #         SELECT cnpj, '{data[1].replace("'",'').replace('%', '')}'
-            
-    #         COMMIT;
-    #         """
-    #         self.cursor.execute(sql, data)
-    #     except Exception as e:
-    #         logger.info(str(e))
