@@ -327,7 +327,7 @@ class Database:
         except Exception as e:
             logger.info(str(e))
     
-    def dados_fato(self):
+    def consulta_dados_fato(self, cod_situacao_cadastral, cnae_principal, cnae_secundario):
         try:
             sql = f"""
                     SELECT  REGEXP_REPLACE
@@ -362,10 +362,13 @@ class Database:
                             END                                                         AS "Simples Nacional",
                             quantidade_empresa 	                                        AS "Número de empresas"
                     FROM   PUBLIC.fat_dados_empresa
-                    LIMIT 10000;
-            """
+                    WHERE  cnae_principal  = '{cnae_principal}'
+                        AND cnae_secundario like '%{cnae_secundario}%'
+                        AND codigo_situacao_cadastral = '{cod_situacao_cadastral}'
+                        ;
+                    """
             df = pd.read_sql(sql, self.con)
-            logger.info('Todos os dados foram selecionados')
+            logger.info(f'CNAE Principal: {cnae_principal}, CNAE Secundário: {cnae_secundario} e Situação Cadastral: {cod_situacao_cadastral}. Dados filtrados!')
             return df 
         except Exception as e:
             logger.info(str(e))
