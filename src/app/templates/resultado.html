@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Resultado da Busca</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  </head>
+  <body>
+    <div class="header">
+      <div class="logo">
+        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo da Empresa">
+      </div>
+      <button class="btn-voltar">Voltar</button>
+    </div>
+    <div class="content">
+      <h1>Resultado da Busca</h1>
+      <div class="table-container">
+        {{ tabela | safe }}
+      </div>
+    </div>
+    <script>
+      const btnVoltar = document.querySelector('.btn-voltar');
+      btnVoltar.addEventListener('click', () => {
+        history.back();
+      });
+    </script>
+  </body>
+</html>
